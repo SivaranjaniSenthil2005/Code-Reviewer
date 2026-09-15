@@ -3,6 +3,7 @@
 import React from "react";
 import { FindingsList, IssueFinding } from "./FindingsList";
 import { ComplexityCard } from "./ComplexityCard";
+import { CodeComparison } from "./CodeComparison";
 
 export interface ReviewData {
   review_id?: string | null;
@@ -70,6 +71,17 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ data, originalCode }) 
       {/* Issues & Findings */}
       <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
         <FindingsList issues={data.issues} />
+      </div>
+
+      {/* Side-by-Side Code Comparison & Refactoring */}
+      <div className="p-5 rounded-xl border border-slate-800 bg-slate-900/60 backdrop-blur-md">
+        <CodeComparison
+          originalCode={originalCode}
+          refactoredCode={data.refactored_code}
+          refactoringNotes={data.refactoring_notes}
+          isValidated={data.refactoring_validated}
+          language={data.detected_language}
+        />
       </div>
     </div>
   );

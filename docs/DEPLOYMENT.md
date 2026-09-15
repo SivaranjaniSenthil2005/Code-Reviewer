@@ -1,12 +1,10 @@
-# Deployment & Infrastructure Guide
+# Production Deployment Guide
 
-> **Note**: Full deployment scripts, Docker container definitions, and CI/CD pipelines will be completed in Phase 22.
+Refer to [deployment.md](file:///c:/Users/ASUS/Documents/capstone2/docs/deployment.md) for full deployment specifications, environment secrets, and monitoring architecture.
 
----
-
-## 1. Candidate Infrastructure Setup
-
-- **Frontend**: Next.js 15 deployed on **Vercel** with automatic preview environments.
-- **Backend API**: FastAPI containerized with Docker, deployed on **GCP Cloud Run** or **Render** (auto-scaling serverless container platform).
-- **Database**: **MongoDB Atlas Dedicated Cluster** (Vector Search enabled).
-- **Observability**: **LangSmith** cloud workspace.
+## Quick Summary
+- **Frontend Target:** Vercel
+- **Backend Target:** Render / Railway (FastAPI)
+- **Database:** MongoDB Atlas (Persistent Storage + Vector Search)
+- **Tracing:** LangSmith (`LANGCHAIN_TRACING_V2=true`)
+- **Health Check:** `GET /health`

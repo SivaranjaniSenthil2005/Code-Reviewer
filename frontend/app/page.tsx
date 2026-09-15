@@ -33,7 +33,8 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:8000/api/review", {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const response = await fetch(`${apiBase}/api/review`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

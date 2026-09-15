@@ -45,6 +45,17 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+def setup_langsmith_tracing() -> bool:
+    """Export LangSmith environment variables to enable project-wide tracing."""
+    import os
+    if settings.LANGSMITH_API_KEY:
+        os.environ["LANGCHAIN_TRACING_V2"] = "true"
+        os.environ["LANGCHAIN_API_KEY"] = settings.LANGSMITH_API_KEY
+        os.environ["LANGCHAIN_PROJECT"] = settings.LANGSMITH_PROJECT
+        return True
+    return False
+
+
 def get_settings() -> Settings:
     """Get global settings instance."""
     return settings

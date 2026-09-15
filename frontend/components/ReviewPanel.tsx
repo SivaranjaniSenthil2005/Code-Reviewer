@@ -4,6 +4,7 @@ import React from "react";
 import { FindingsList, IssueFinding } from "./FindingsList";
 import { ComplexityCard } from "./ComplexityCard";
 import { CodeComparison } from "./CodeComparison";
+import { ExportButton } from "./ExportButton";
 
 export interface ReviewData {
   review_id?: string | null;
@@ -36,6 +37,7 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({ data, originalCode }) 
             <h2 className="text-base font-bold text-white tracking-tight">Review Summary</h2>
           </div>
           <div className="flex items-center gap-2">
+            <ExportButton data={data} originalCode={originalCode} />
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
               {data.review_mode} Mode
             </span>

@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 EMBEDDING_DIMENSION = 128
 
 
+from app.services.cache.safe_cache import EMBEDDING_VECTOR_CACHE, compute_code_hash
+
+
 class EmbeddingService:
     """Generates dense vector embeddings for text chunks and queries."""
 
@@ -19,8 +22,18 @@ class EmbeddingService:
         self.api_key = api_key or getattr(settings, "GEMINI_API_KEY", "")
 
     async def embed_query(self, text: str) -> List[float]:
-        """Generate embedding vector for a search query string."""
-        return self._generate_embedding(text)
+        """Generate embedding vector for a search query string with caching."""
+        if not text:
+            return [0.0] * EMBEDDING_DIMENSION
+
+        h = compute_code_hash(text)
+        cached = EMBEDDING_VECTOR_CACHE.get(h)
+        if cached:
+            return cached
+
+        emb = self._generate_embedding(text)
+        EMBEDDING_VECTOR_CACHE.set(h, emb)
+        return emb
 
     async def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """Generate embedding vectors for a batch of text chunks."""

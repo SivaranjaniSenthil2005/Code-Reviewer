@@ -109,20 +109,18 @@ LANGUAGE_ALIAS_MAP: dict[str, str] = {
 }
 
 
+from app.services.cache.safe_cache import LANGUAGE_DETECTION_CACHE, compute_code_hash
+
+
 def detect_language(code: str, filename: Optional[str] = None, hint: Optional[str] = None) -> dict:
     """Detect the programming language of a code snippet.
 
     Detection priority:
     1. User-provided `hint` (explicit override)
-    2. `filename` extension match
-    3. Shebang line (`#!/usr/bin/env python3`)
-    4. Keyword heuristic scoring
-
-    Returns a dict with keys:
-        - "language_id": str  (e.g. "python")
-        - "language_name": str (e.g. "Python")
-        - "confidence": float  (0.0–1.0)
-        - "method": str  (e.g. "hint", "extension", "shebang", "heuristic", "unknown")
+    2. Snippet hash cache check
+    3. `filename` extension match
+    4. Shebang line (`#!/usr/bin/env python3`)
+    5. Keyword heuristic scoring
     """
     # 1. User hint
     if hint:
@@ -136,6 +134,13 @@ def detect_language(code: str, filename: Optional[str] = None, hint: Optional[st
                 "confidence": 1.0,
                 "method": "hint",
             }
+
+    # 2. Cache check on code hash
+    if not filename and code.strip():
+        code_hash = compute_code_hash(code)
+        cached = LANGUAGE_DETECTION_CACHE.get(code_hash)
+        if cached:
+            return cached
 
     # 2. Filename extension
     if filename:
@@ -169,12 +174,15 @@ def detect_language(code: str, filename: Optional[str] = None, hint: Optional[st
         total = sum(s for _, s in scores)
         confidence = round(best_score / total, 3) if total > 0 else 0.0
         lang_def = _get_lang_def(best_id)
-        return {
+        result = {
             "language_id": best_id,
             "language_name": lang_def["name"] if lang_def else best_id,
             "confidence": min(confidence, 0.85),
             "method": "heuristic",
         }
+        if not filename and code.strip():
+            LANGUAGE_DETECTION_CACHE.set(compute_code_hash(code), result)
+        return result
 
     return {
         "language_id": "unknown",

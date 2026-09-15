@@ -14,11 +14,15 @@ def test_health_check_root():
     """Smoke test for the root /health endpoint."""
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    json_data = response.json()
+    assert json_data["status"] == "ok"
+    assert "database" in json_data
 
 
 def test_health_check_v1():
     """Smoke test for the /api/v1/health endpoint."""
     response = client.get("/api/v1/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    json_data = response.json()
+    assert json_data["status"] == "ok"
+    assert "database" in json_data

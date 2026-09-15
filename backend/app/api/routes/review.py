@@ -16,6 +16,9 @@ from app.database.client import get_database
 from app.repositories.review_repository import ReviewRepository
 from app.repositories.finding_repository import FindingRepository
 
+from app.services.security.rate_limiter import check_review_rate_limit
+from fastapi import Depends
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/review", tags=["Code Review"])
@@ -24,9 +27,11 @@ router = APIRouter(prefix="/api/review", tags=["Code Review"])
 @router.post(
     "",
     response_model=ReviewResponse,
+    dependencies=[Depends(check_review_rate_limit)],
     responses={
         400: {"model": APIErrorResponse, "description": "Invalid or non-code input"},
         413: {"model": APIErrorResponse, "description": "Input code too large"},
+        429: {"model": APIErrorResponse, "description": "Too many requests / rate limit exceeded"},
         502: {"model": APIErrorResponse, "description": "AI provider service unavailable"},
         503: {"model": APIErrorResponse, "description": "AI provider service overloaded"},
     },

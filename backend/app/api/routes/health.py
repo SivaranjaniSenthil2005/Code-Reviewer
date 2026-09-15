@@ -1,3 +1,9 @@
-"""Health check and system status API endpoints."""
+from fastapi import APIRouter
 
-# TODO: implemented in Phase 1
+router = APIRouter(tags=["Health"])
+
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint returning system status."""
+    return {"status": "ok"}

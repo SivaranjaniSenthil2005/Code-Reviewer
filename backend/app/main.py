@@ -7,6 +7,7 @@ from app.config import settings
 from app.database.connection import connect_to_mongo, close_mongo_connection
 from app.database.indexes import create_database_indexes
 from app.api.routes.health import router as health_router
+from app.api.routes.review import router as review_router
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,7 @@ app.add_middleware(
 # Mount routes
 app.include_router(health_router)
 app.include_router(health_router, prefix="/api/v1")
+app.include_router(review_router)
 
 
 @app.get("/")

@@ -53,24 +53,21 @@ def build_review_graph() -> StateGraph:
     return builder.compile()
 
 
-# Compiled singleton graph
-_compiled_graph = None
+from app.graph.quick_review import get_quick_review_graph
+from app.graph.deep_review import get_deep_review_graph
 
 
-def get_review_graph():
-    """Get or compile singleton review graph."""
-    global _compiled_graph
-    if _compiled_graph is None:
-        _compiled_graph = build_review_graph()
-    return _compiled_graph
+def get_review_graph(depth: str = "quick"):
+    """Get the appropriate compiled graph based on review depth."""
+    if depth.lower() == "deep":
+        return get_deep_review_graph()
+    return get_quick_review_graph()
 
 
 async def run_review(state: ReviewState, persist: bool = False) -> ReviewResult:
-    """Execute the full LangGraph review workflow for the provided state.
-
-    Optionally persists the review and findings to MongoDB if database is available.
-    """
-    graph = get_review_graph()
+    """Execute the appropriate LangGraph review workflow for the provided state."""
+    depth = state.get("depth", "quick")
+    graph = get_review_graph(depth=depth)
     final_state = await graph.ainvoke(state)
     result: ReviewResult = final_state.get("final_result")
 

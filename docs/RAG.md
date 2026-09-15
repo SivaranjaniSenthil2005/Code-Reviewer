@@ -1,39 +1,32 @@
-# RAG Subsystem Architecture
+# RAG Knowledge Retrieval Pipeline
 
-This document defines the Retrieval-Augmented Generation (RAG) architecture used during **Deep Review** to augment agent prompt contexts with coding guidelines, vulnerability standards, and enterprise best practices.
+This document details the Retrieval-Augmented Generation (RAG) subsystem used to ground security, bug, and quality agents in validated industry standards and language best practices.
 
 ---
 
-## 1. RAG Pipeline Overview
+## 1. Knowledge Base Sources
 
-```text
-[Coding Guidelines / Security Rules / Repo Patterns]
-    │
-    ├── 1. Chunking: AST-aware & Markdown Section Splitter
-    ├── 2. Vectorization: Google text-embedding-004 (768 dims)
-    ├── 3. Indexing: MongoDB Atlas Vector Search Index
-    │
-[User Code Input] ──> Semantic Query ──> Cosine Similarity Search (Top-k=3) ──> Inject into Agent Contexts
+The starter knowledge base contains curated documentation across:
+- **OWASP Top 10 Security Flaws**: SQL Injection (CWE-89), Hardcoded Credentials (CWE-798), Cross-Site Scripting (CWE-79), Insecure Deserialization (CWE-502).
+- **Language Anti-Patterns**: Python mutable default arguments, resource descriptor leaks, JavaScript unhandled async promise rejections, Go nil channel deadlocks.
+- **Clean Code Standards**: PEP 8 styling conventions, naming conventions, and modularity principles.
+
+---
+
+## 2. Ingestion & Retrieval Pipeline
+
+```mermaid
+graph LR
+    Docs[Markdown Knowledge Docs] --> Chunker[Section Header Chunker]
+    Chunker --> Embedder[Embedding Service]
+    Embedder --> VStore[Vector Store]
+    Query[User Code Snippet] --> Retriever[Knowledge Retriever]
+    VStore --> Retriever
+    Retriever --> Prompt[Enriched Agent Prompts]
 ```
 
-## 2. Components & Vector Storage
-
-- **Document Chunking**: Split style guide documents and CWE security references into chunks of 500 tokens with 50-token overlaps.
-- **Embedding Provider**: Primary: `text-embedding-004` via LangChain Google Generative AI embeddings package.
-- **MongoDB Atlas Index Definition**:
-  ```json
-  {
-    "fields": [
-      {
-        "type": "vector",
-        "path": "embedding",
-        "numDimensions": 768,
-        "similarity": "cosine"
-      },
-      {
-        "type": "filter",
-        "path": "category"
-      }
-    ]
-  }
-  ```
+### Retrieval Mechanics
+- **Chunking**: Header-based chunking (`#`, `##`) preserving section titles and document categories.
+- **Embeddings**: Deterministic dense vector embeddings with unit norm normalization (128 dimensions).
+- **Similarity Metric**: Cosine similarity matching with language and category metadata filtering.
+- **Graceful Fallback**: If the vector store is uninitialized or the embedding service encounters an error, the pipeline silently returns empty context allowing agents to proceed without interruption.

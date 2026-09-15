@@ -1,55 +1,66 @@
-# API Reference & Specification
+# API Reference Specification
 
-This document details the RESTful and SSE (Server-Sent Events) API endpoints provided by the FastAPI backend service for the **AI Code Review & Refactoring Platform**.
-
----
-
-## 1. Endpoints Overview
-
-| Endpoint | Method | Description | Content-Type |
-| :--- | :--- | :--- | :--- |
-| `/api/v1/health` | GET | System health check & dependency status | `application/json` |
-| `/api/v1/review` | POST | Submit code snippet for Quick Scan or Deep Review | `application/json` |
-| `/api/v1/review/stream` | POST | Stream intermediate agent progress & final result | `text/event-stream` |
-| `/api/v1/reviews/{id}` | GET | Retrieve past code review by ID | `application/json` |
+Base URL: `http://localhost:8000` (or production configured domain).
 
 ---
 
-## 2. Request & Response Payloads
+## 1. Endpoints
 
-### 2.1 Health Check (`GET /api/v1/health`)
-**Response (200 OK)**:
+### `POST /api/review`
+Submit source code for automated multi-agent review and refactoring.
+
+#### Request Body (`application/json`)
 ```json
 {
-  "status": "healthy",
-  "version": "1.0.0",
-  "llm_providers": {
-    "gemini": "available",
-    "mistral": "available"
-  },
-  "database": "connected"
+  "code": "def divide(a, b):\n    return a / b\n",
+  "language_hint": "python",
+  "depth": "quick",
+  "user_id": "optional-user-id",
+  "repo_name": "optional-repo",
+  "file_path": "math_utils.py"
 }
 ```
 
-### 2.2 Submit Code Review (`POST /api/v1/review`)
-**Request**:
+#### Response (`application/json` - HTTP 200)
 ```json
 {
-  "code": "def divide(a, b):\n    return a / b",
-  "language": "python",
-  "mode": "quick"
+  "review_id": "65f2a1b9c3e4d50012a4b876",
+  "detected_language": "python",
+  "summary": "Review completed in QUICK mode. Identified 1 total issue(s).",
+  "explanation": "Defines a division helper function.",
+  "issues": [
+    {
+      "line": 2,
+      "category": "bug",
+      "severity": "high",
+      "description": "Potential division by zero when b is 0.",
+      "suggestion": "Check that b != 0 before dividing."
+    }
+  ],
+  "refactored_code": "def divide(a: float, b: float) -> float:\n    if b == 0:\n        raise ValueError('Divisor cannot be zero')\n    return a / b\n",
+  "refactoring_notes": "Added divisor validation guard check.",
+  "refactoring_validated": true,
+  "complexity_assessment": "O(1) time complexity, O(1) space complexity.",
+  "readability_score": 92.5,
+  "review_mode": "quick",
+  "processing_time_ms": 1240.5,
+  "status": "completed"
 }
 ```
 
-**Response (200 OK)**: Canonical `CodeReviewResult` JSON format.
+#### Error Responses
+- **400 Bad Request**: Empty code or plain prose text rejected.
+- **413 Payload Too Large**: Code exceeds character or line limit.
+- **429 Too Many Requests**: Client IP exceeded rate limit threshold.
+- **502 Bad Gateway**: AI providers (Gemini & Mistral) temporarily unreachable.
+- **500 Internal Server Error**: Unexpected unhandled exception.
 
 ---
 
-## 3. Server-Sent Events (SSE) Progress Stream (`POST /api/v1/review/stream`)
+### `GET /api/review/{review_id}`
+Fetch a previously saved review and its attached findings.
 
-Streams real-time execution steps as agents execute.
+---
 
-**Events Emitted**:
-- `event: status` -> Payload: `{"step": "language_detection", "message": "Detected Python"}`
-- `event: status` -> Payload: `{"step": "bug_agent", "message": "Analyzing edge cases..."}`
-- `event: complete` -> Payload: `<Full Canonical CodeReviewResult JSON>`
+### `GET /health`
+System health probe verifying service status and database connectivity.

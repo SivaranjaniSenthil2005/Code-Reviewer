@@ -1,0 +1,1 @@
+# Core dependencies will be pinned in Phase 1

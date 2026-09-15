@@ -146,12 +146,12 @@ async def refactoring_node(state: ReviewState) -> Dict[str, Any]:
 
 
 async def validation_node(state: ReviewState) -> Dict[str, Any]:
-    """Node: Sanity check refactored code."""
-    original = state.get("code", "")
+    """Node: Sanity check refactored code with single-retry correction loop and safe fallback."""
+    original = state.get("raw_code") or state.get("code", "")
     refactor_out = state.get("refactoring_output")
     language = state.get("language", "unknown")
 
-    if not refactor_out:
+    if not refactor_out or not refactor_out.refactored_code:
         return {"refactoring_validated": True}
 
     is_valid, err = await run_validation_agent(
@@ -159,7 +159,53 @@ async def validation_node(state: ReviewState) -> Dict[str, Any]:
         refactored_code=refactor_out.refactored_code,
         language=language,
     )
-    return {"refactoring_validated": is_valid}
+
+    if is_valid:
+        return {"refactoring_validated": True}
+
+    logger.warning(f"[Node: validation] Refactoring validation failed ({err}). Triggering retry...")
+
+    # Phase 10: Retry refactoring once with explicit error feedback
+    from app.agents.refactoring_agent import run_refactoring_retry
+    from app.schemas.agent_outputs import RefactoringOutput
+
+    retry_output = await run_refactoring_retry(
+        original_code=original,
+        language=language,
+        failed_refactor=refactor_out.refactored_code,
+        error_reason=err or "Validation failure",
+    )
+
+    # Validate the retried refactoring
+    retry_valid, retry_err = await run_validation_agent(
+        original_code=original,
+        refactored_code=retry_output.refactored_code,
+        language=language,
+    )
+
+    if retry_valid:
+        logger.info("[Node: validation] Refactoring retry successfully validated.")
+        return {
+            "refactoring_output": retry_output,
+            "refactoring_validated": True,
+            "refactor_retry_count": 1,
+        }
+
+    # Safe Fallback: Both attempts failed; return original code with safety flag
+    logger.warning(
+        f"[Node: validation] Refactoring retry failed validation twice ({retry_err}). "
+        f"Falling back to original code."
+    )
+    fallback_output = RefactoringOutput(
+        refactored_code=original,
+        changes_summary="Automated refactoring could not be confidently validated; original code is preserved.",
+        reasoning=["Original code preserved to prevent introducing syntactical or functional defects."],
+    )
+    return {
+        "refactoring_output": fallback_output,
+        "refactoring_validated": False,
+        "refactor_retry_count": 1,
+    }
 
 
 async def synthesis_node(state: ReviewState) -> Dict[str, Any]:

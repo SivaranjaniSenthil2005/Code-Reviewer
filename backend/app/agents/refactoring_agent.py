@@ -45,3 +45,32 @@ async def run_refactoring_agent(
             changes_summary="Refactoring generation failed; returning original code.",
             reasoning=["Original code preserved."],
         )
+
+
+async def run_refactoring_retry(
+    original_code: str,
+    language: str,
+    failed_refactor: str,
+    error_reason: str,
+    router: Optional[LLMRouter] = None,
+) -> RefactoringOutput:
+    """Retry refactoring with explicit error feedback describing what failed in validation."""
+    logger.info(f"[refactoring_agent] Retrying refactoring due to: {error_reason}")
+    correction_instruction = (
+        f"The previous refactoring attempt failed validation with error: {error_reason}.\n"
+        f"Fix the syntax and preserve all original signatures and behaviors while optimizing."
+    )
+    try:
+        return await run_refactoring_chain(
+            code=original_code,
+            language=language,
+            issues_summary=correction_instruction,
+            router=router,
+        )
+    except Exception as exc:
+        logger.error(f"[refactoring_agent] Retry failed: {exc}")
+        return RefactoringOutput(
+            refactored_code=original_code,
+            changes_summary="Refactoring retry failed; returning original code.",
+            reasoning=["Original code preserved."],
+        )

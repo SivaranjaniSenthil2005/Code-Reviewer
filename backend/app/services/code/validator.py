@@ -23,6 +23,62 @@ class ValidationResult:
         return None
 
 
+MAX_INPUT_CHARS = 100_000
+MAX_INPUT_LINES = 2_000
+
+# Common code tokens / characters
+CODE_INDICATORS = [
+    r"[{};()\[\]=<>+*\/%&|^!~]",  # Code punctuation
+    r"\b(def|function|fn|class|import|from|const|let|var|if|else|return|for|while|try|catch|throw|public|private|static|struct|enum|interface|type|async|await|package|func|module|export)\b",
+]
+
+
+def validate_code_input(
+    code: str,
+    max_chars: int = MAX_INPUT_CHARS,
+    max_lines: int = MAX_INPUT_LINES,
+) -> tuple[bool, Optional[str]]:
+    """Validate raw user-submitted code snippet before processing.
+
+    Rejects:
+    1. Empty / whitespace-only input
+    2. Oversized input (exceeds max_chars or max_lines)
+    3. Obviously non-code input (plain English prose without code-like tokens)
+
+    Returns: (is_valid: bool, error_message: Optional[str])
+    """
+    if not code or not code.strip():
+        return False, "Input code is empty."
+
+    if len(code) > max_chars:
+        return False, f"Code exceeds maximum allowed size of {max_chars} characters (received {len(code)})."
+
+    lines = code.splitlines()
+    if len(lines) > max_lines:
+        return False, f"Code exceeds maximum allowed line count of {max_lines} lines (received {len(lines)})."
+
+    # Check for non-code prose
+    # If the text has no punctuation typical of code AND no programming keywords, reject
+    has_code_punct = bool(import_re().search(r"[{};=()\[\]<>+*\/%&|^!:]", code))
+    has_keyword = bool(import_re().search(
+        r"\b(def|fn|func|function|class|import|from|const|let|var|if|else|return|for|while|try|catch|throws|public|private|protected|static|struct|enum|interface|type|async|await|package|module|export|puts|echo|print|select|insert|update|delete|CREATE|TABLE)\b",
+        code,
+        import_re().IGNORECASE,
+    ))
+
+    # Long natural language paragraph without standard code markers
+    words = code.split()
+    if len(words) > 15 and not has_keyword and not has_code_punct:
+        return False, "Submitted text appears to be plain prose rather than source code."
+
+    return True, None
+
+
+def import_re():
+    import re
+    return re
+
+
 def validate_syntax(code: str, language_id: str) -> ValidationResult:
     """Validate the syntax of a code snippet for a given language.
 

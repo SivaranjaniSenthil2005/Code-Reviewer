@@ -34,7 +34,13 @@ async def test_run_benchmark_evaluation_metrics():
         elif "target_list=[]" in code:
             issues.append(IssueFinding(line=1, category="bug", severity="medium", description="Mutable default argument in target_list"))
         elif "API_SECRET_KEY" in code:
-            issues.append(IssueFinding(line=1, category="vulnerability", severity="critical", description="Hardcoded API secret token"))
+            issues.append(IssueFinding(line=1, category="vulnerability", severity="critical", description="Hardcoded secret token in code"))
+        elif "loadData" in code:
+            issues.append(IssueFinding(line=2, category="bug", severity="low", description="Missing try/catch error handling around async fetch call"))
+        elif "FileInputStream" in code:
+            issues.append(IssueFinding(line=3, category="bug", severity="medium", description="Unclosed FileInputStream resource leak"))
+        elif "readFromNilChan" in code:
+            issues.append(IssueFinding(line=3, category="bug", severity="high", description="Nil channel read causing permanent deadlock"))
 
         return ReviewResult(
             detected_language="python",

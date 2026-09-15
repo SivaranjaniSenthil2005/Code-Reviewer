@@ -7,7 +7,7 @@ import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 
 from app.services.code.language_detector import detect_language, normalize_language_id
-from app.services.code.validator import validate_syntax
+from app.services.code.validator import validate_syntax, validate_code_input
 from app.services.code.normalizer import normalize_code, truncate_to_limit, estimate_line_count
 from app.services.code.line_mapper import build_line_map, remap_finding_line, remap_findings
 
@@ -105,6 +105,38 @@ class TestValidator:
     def test_empty_js_fails(self):
         result = validate_syntax("   ", "javascript")
         assert result.is_valid is False
+
+    def test_validate_code_input_normal_python(self):
+        ok, err = validate_code_input("def greet(name):\n    return f'Hello {name}'")
+        assert ok is True
+        assert err is None
+
+    def test_validate_code_input_normal_javascript(self):
+        ok, err = validate_code_input("const sum = (a, b) => a + b;")
+        assert ok is True
+        assert err is None
+
+    def test_validate_code_input_normal_java(self):
+        ok, err = validate_code_input("public class Main { public static void main(String[] args) { System.out.println(1); } }")
+        assert ok is True
+        assert err is None
+
+    def test_validate_code_input_empty_rejected(self):
+        ok, err = validate_code_input("   \n\t  ")
+        assert ok is False
+        assert "empty" in err.lower()
+
+    def test_validate_code_input_plain_prose_rejected(self):
+        prose = "Yesterday I went to the park and saw many birds singing in the trees and people walking around enjoying the sunny weather."
+        ok, err = validate_code_input(prose)
+        assert ok is False
+        assert "prose" in err.lower()
+
+    def test_validate_code_input_oversized_rejected(self):
+        huge_code = "x = 1\n" * 3000
+        ok, err = validate_code_input(huge_code, max_lines=2000)
+        assert ok is False
+        assert "line count" in err.lower()
 
 
 # ─── Normalizer Tests ────────────────────────────────────────────────────────
@@ -210,3 +242,12 @@ class TestLineMapper:
         assert 2 in orig_lines
         assert 3 in orig_lines
         assert 4 in orig_lines
+
+    def test_line_index_dict(self):
+        code = "first_line\nsecond_line\nthird_line"
+        line_map = build_line_map(code, code)
+        idx = line_map.to_line_index()
+        assert idx[1] == "first_line"
+        assert idx[2] == "second_line"
+        assert idx[3] == "third_line"
+        assert line_map.get_line_text(2) == "second_line"

@@ -41,6 +41,17 @@ class LineMap:
             if abs(e.original_line - original_line) <= window
         ]
 
+    def get_line_text(self, original_line: int) -> Optional[str]:
+        """Get original line content by original line number."""
+        for e in self.entries:
+            if e.original_line == original_line:
+                return e.content
+        return None
+
+    def to_line_index(self) -> dict[int, str]:
+        """Return a dictionary mapping line number -> original line text."""
+        return {e.original_line: e.content for e in self.entries}
+
 
 def build_line_map(original_code: str, normalized_code: str) -> LineMap:
     """Build a bidirectional line number map between original and normalized code.

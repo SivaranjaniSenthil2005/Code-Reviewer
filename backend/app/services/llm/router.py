@@ -141,3 +141,14 @@ class LLMRouter:
                 f"All configured LLM providers failed structured generation. Primary error: {primary_msg}. Fallback error: {fallback_msg}",
                 original_error=fallback_exc,
             )
+
+
+_global_router: Optional[LLMRouter] = None
+
+
+def get_llm_router() -> LLMRouter:
+    """Get or instantiate the global LLM router singleton."""
+    global _global_router
+    if _global_router is None:
+        _global_router = LLMRouter()
+    return _global_router

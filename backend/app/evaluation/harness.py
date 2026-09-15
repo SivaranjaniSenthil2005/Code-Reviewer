@@ -23,6 +23,7 @@ class BenchmarkSample:
 
 
 BENCHMARK_DATASET: List[BenchmarkSample] = [
+    # 1. Python SQL Injection
     BenchmarkSample(
         sample_id="py-sqli-01",
         name="Python SQL Injection",
@@ -35,6 +36,7 @@ BENCHMARK_DATASET: List[BenchmarkSample] = [
         expected_vulnerabilities=["sql", "injection"],
         expected_min_severity="high",
     ),
+    # 2. Python Division by Zero
     BenchmarkSample(
         sample_id="py-div-zero",
         name="Python Division by Zero Defect",
@@ -46,6 +48,7 @@ BENCHMARK_DATASET: List[BenchmarkSample] = [
         expected_vulnerabilities=[],
         expected_min_severity="medium",
     ),
+    # 3. Python Mutable Default Argument
     BenchmarkSample(
         sample_id="py-mutable-default",
         name="Python Mutable Default Argument",
@@ -58,6 +61,7 @@ BENCHMARK_DATASET: List[BenchmarkSample] = [
         expected_vulnerabilities=[],
         expected_min_severity="medium",
     ),
+    # 4. JavaScript Hardcoded API Secret
     BenchmarkSample(
         sample_id="js-hardcoded-token",
         name="JavaScript Hardcoded API Token",
@@ -69,6 +73,51 @@ async function fetchAccount() {
 """,
         expected_bugs=[],
         expected_vulnerabilities=["secret", "token", "hardcoded"],
+        expected_min_severity="high",
+    ),
+    # 5. TypeScript Unhandled Promise / Async Rejection
+    BenchmarkSample(
+        sample_id="ts-unhandled-promise",
+        name="TypeScript Unhandled Async Error",
+        language="typescript",
+        code="""async function loadData(url: string): Promise<any> {
+    const res = await fetch(url);
+    return res.json();
+}
+""",
+        expected_bugs=["error handling", "try", "catch"],
+        expected_vulnerabilities=[],
+        expected_min_severity="low",
+    ),
+    # 6. Java Resource Leak
+    BenchmarkSample(
+        sample_id="java-unclosed-stream",
+        name="Java Unclosed FileInputStream Resource Leak",
+        language="java",
+        code="""public class FileReader {
+    public void readFile(String path) throws Exception {
+        FileInputStream fis = new FileInputStream(path);
+        int data = fis.read();
+    }
+}
+""",
+        expected_bugs=["resource leak", "close", "stream"],
+        expected_vulnerabilities=[],
+        expected_min_severity="medium",
+    ),
+    # 7. Go Goroutine Resource / Channel Leak
+    BenchmarkSample(
+        sample_id="go-goroutine-leak",
+        name="Go Nil Channel Read Deadlock",
+        language="go",
+        code="""package main
+func readFromNilChan() int {
+    var ch chan int
+    return <-ch
+}
+""",
+        expected_bugs=["nil channel", "deadlock", "block"],
+        expected_vulnerabilities=[],
         expected_min_severity="high",
     ),
 ]
@@ -111,7 +160,6 @@ async def run_benchmark_evaluation(depth: str = "deep") -> EvaluationMetricResul
         all_expected = sample.expected_bugs + sample.expected_vulnerabilities
         total_expected += len(all_expected)
 
-        # Check recall against reported issues
         caught_count = 0
         reported_descriptions = [i.description.lower() for i in review.issues]
         total_reported += len(review.issues)
@@ -132,7 +180,6 @@ async def run_benchmark_evaluation(depth: str = "deep") -> EvaluationMetricResul
 
     recall = total_caught / total_expected if total_expected > 0 else 1.0
     avg_latency = total_latency_ms / len(BENCHMARK_DATASET) if BENCHMARK_DATASET else 0.0
-    # Estimate false positives as reported issues beyond caught expected defects
     fp_estimate = max(0, total_reported - total_caught)
     fp_rate = fp_estimate / total_reported if total_reported > 0 else 0.0
 
